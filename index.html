@@ -455,11 +455,11 @@ function loadPDF(inp){
       const pages=[];
       for(let i=1;i<=pdf.numPages;i++){
         const pg=await pdf.getPage(i);
-        const vp=pg.getViewport({scale:1.5});
+        const vp=pg.getViewport({scale:2.5});
         const tmp=document.createElement('canvas');
         tmp.width=vp.width; tmp.height=vp.height;
         await pg.render({canvasContext:tmp.getContext('2d'),viewport:vp}).promise;
-        pages.push({dataUrl:tmp.toDataURL('image/jpeg',.85)});
+        pages.push({dataUrl:tmp.toDataURL('image/png')});
       }
       srcPages=pages; pageIdx=0; zoom=1;
       showFileStatus('✓ '+file.name);
@@ -497,7 +497,10 @@ function renderCanvas(){
   img.onload=()=>{
     const c=document.getElementById('main-canvas');
     c.width=img.width*zoom; c.height=img.height*zoom;
-    c.getContext('2d').drawImage(img,0,0,c.width,c.height);
+    const ctx2d=c.getContext('2d');
+    ctx2d.imageSmoothingEnabled=true;
+    ctx2d.imageSmoothingQuality='high';
+    ctx2d.drawImage(img,0,0,c.width,c.height);
     document.getElementById('pg-ind').textContent=(pageIdx+1)+'/'+srcPages.length;
     document.getElementById('btn-prev').disabled=pageIdx===0;
     document.getElementById('btn-next').disabled=pageIdx>=srcPages.length-1;
@@ -582,8 +585,13 @@ function confirmCrop(){
   const sw=Math.min(w,canvas.width-sx),sh=Math.min(h,canvas.height-sy);
   if(sw<5||sh<5){cancelCrop();return;}
   const tmp=document.createElement('canvas');
-  tmp.width=sw; tmp.height=sh;
-  tmp.getContext('2d').drawImage(canvas,sx,sy,sw,sh,0,0,sw,sh);
+  const scale=2;
+  tmp.width=sw*scale; tmp.height=sh*scale;
+  const tctx=tmp.getContext('2d');
+  tctx.imageSmoothingEnabled=true;
+  tctx.imageSmoothingQuality='high';
+  tctx.scale(scale,scale);
+  tctx.drawImage(canvas,sx,sy,sw,sh,0,0,sw,sh);
   questions.push({id:Date.now(),dataUrl:tmp.toDataURL('image/png'),answer:''});
   renderQList(); cancelCrop(); setStep(3);
 }
@@ -715,7 +723,7 @@ function buildPreview(){
 function qBlock(q,idx,c){
   let h=`<div class="prev-q">
     <div class="prev-q-head"><span>Soru ${idx+1}</span>${sett.showPts?`<span>${c.pts} p</span>`:''}</div>
-    <img src="${q.dataUrl}" style="width:100%;display:block;max-height:120px;object-fit:contain">`;
+    <img src="${q.dataUrl}" style="width:100%;display:block;max-height:120px;object-fit:contain;image-rendering:high-quality">`;
   if(sett.ansBox) h+=`<div style="border-top:1px solid #E5E7EB;padding:3px 7px;font-size:8px;color:#9CA3AF">Cevap: ______</div>`;
   if(sett.sol)    h+=`<div style="border-top:1px solid #E5E7EB;height:${solH}px;background:#FAFAFA"></div>`;
   h+=`</div>`;
