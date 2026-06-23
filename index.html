@@ -63,7 +63,7 @@ html,body{height:100%;background:var(--bg);font-family:-apple-system,BlinkMacSys
 .viewer-toolbar{display:flex;align-items:center;gap:6px;padding:10px 14px;border-bottom:1px solid var(--border);flex-wrap:wrap;background:var(--white)}
 .viewer-canvas-wrap{position:relative;overflow:auto;background:#555;min-height:300px;display:flex;justify-content:center;align-items:flex-start;padding:14px;cursor:crosshair;-webkit-overflow-scrolling:touch}
 .crop-overlay{position:absolute;border:2.5px solid #3B82F6;background:rgba(59,130,246,.15);pointer-events:none;z-index:10;display:none;border-radius:3px}
-.crop-confirm{position:absolute;z-index:20;display:none;gap:6px}
+.crop-confirm{display:none;gap:10px}
 
 /* QUESTION ITEM */
 .q-item{display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--bg);border-radius:12px;margin-bottom:8px}
@@ -264,10 +264,10 @@ select.form-input{cursor:pointer}
       <div class="viewer-canvas-wrap" id="canvas-wrap">
         <canvas id="main-canvas" style="display:block;box-shadow:0 2px 16px rgba(0,0,0,.3);user-select:none;-webkit-user-select:none"></canvas>
         <div class="crop-overlay" id="crop-rect"></div>
-        <div class="crop-confirm" id="crop-confirm">
-          <button class="btn-primary" onclick="confirmCrop()" style="padding:10px 18px;font-size:13px;border-radius:10px;width:auto">✓ Ekle</button>
-          <button class="btn-secondary" onclick="cancelCrop()" style="padding:10px 14px;border-radius:10px">✕</button>
-        </div>
+      </div>
+      <div id="crop-confirm" style="display:none;position:sticky;bottom:0;left:0;right:0;padding:10px 14px;background:white;border-top:1px solid var(--border);gap:10px;z-index:100">
+        <button class="btn-primary" onclick="confirmCrop()" style="flex:1;padding:14px;font-size:15px">✓ Soruyu Ekle</button>
+        <button class="btn-secondary" onclick="cancelCrop()" style="padding:14px 18px;border:1.5px solid var(--border);border-radius:12px">✕</button>
       </div>
       <div style="padding:8px 14px;background:var(--bg);font-size:12px;color:var(--text2);text-align:center" id="mode-hint">
         ✂️ Kare çizerek soru seçin
@@ -455,7 +455,7 @@ function loadPDF(inp){
       const pages=[];
       for(let i=1;i<=pdf.numPages;i++){
         const pg=await pdf.getPage(i);
-        const vp=pg.getViewport({scale:2.5});
+        const vp=pg.getViewport({scale:1.8});
         const tmp=document.createElement('canvas');
         tmp.width=vp.width; tmp.height=vp.height;
         await pg.render({canvasContext:tmp.getContext('2d'),viewport:vp}).promise;
@@ -550,8 +550,6 @@ function cancelCrop(){
 }
 function onDown(cx,cy,target){
   if(mode!=='crop')return;
-  const c=document.getElementById('main-canvas');
-  if(target!==c&&target!==wrap)return;
   cancelCrop(); isDrawing=true;
   startP=getPos(cx,cy); endP={...startP}; updateRect();
 }
@@ -565,13 +563,13 @@ function onUp(){
   if(w<15||h<15){cancelCrop();return;}
   const x=Math.min(startP.x,endP.x),y=Math.min(startP.y,endP.y);
   pendingCrop={x,y,w,h};
-  Object.assign(cropCfm.style,{display:'flex',left:(x+w+6)+'px',top:y+'px'});
+  cropCfm.style.display='flex';
 }
 
 wrap.addEventListener('mousedown',e=>{if(e.target===document.getElementById('main-canvas')||e.target===wrap)onDown(e.clientX,e.clientY,e.target);});
 wrap.addEventListener('mousemove',e=>onMove(e.clientX,e.clientY));
 wrap.addEventListener('mouseup',()=>onUp());
-wrap.addEventListener('touchstart',e=>{onDown(e.touches[0].clientX,e.touches[0].clientY,e.target);e.preventDefault();},{passive:false});
+wrap.addEventListener('touchstart',e=>{onDown(e.touches[0].clientX,e.touches[0].clientY,document.getElementById('main-canvas'));e.preventDefault();},{passive:false});
 wrap.addEventListener('touchmove',e=>{onMove(e.touches[0].clientX,e.touches[0].clientY);e.preventDefault();},{passive:false});
 wrap.addEventListener('touchend',()=>onUp(),{passive:false});
 
@@ -585,12 +583,10 @@ function confirmCrop(){
   const sw=Math.min(w,canvas.width-sx),sh=Math.min(h,canvas.height-sy);
   if(sw<5||sh<5){cancelCrop();return;}
   const tmp=document.createElement('canvas');
-  const scale=2;
-  tmp.width=sw*scale; tmp.height=sh*scale;
+  tmp.width=sw; tmp.height=sh;
   const tctx=tmp.getContext('2d');
   tctx.imageSmoothingEnabled=true;
   tctx.imageSmoothingQuality='high';
-  tctx.scale(scale,scale);
   tctx.drawImage(canvas,sx,sy,sw,sh,0,0,sw,sh);
   questions.push({id:Date.now(),dataUrl:tmp.toDataURL('image/png'),answer:''});
   renderQList(); cancelCrop(); setStep(3);
@@ -723,7 +719,7 @@ function buildPreview(){
 function qBlock(q,idx,c){
   let h=`<div class="prev-q">
     <div class="prev-q-head"><span>Soru ${idx+1}</span>${sett.showPts?`<span>${c.pts} p</span>`:''}</div>
-    <img src="${q.dataUrl}" style="width:100%;display:block;max-height:120px;object-fit:contain;image-rendering:high-quality">`;
+    <img src="${q.dataUrl}" style="width:100%;display:block;max-height:160px;object-fit:contain">`;
   if(sett.ansBox) h+=`<div style="border-top:1px solid #E5E7EB;padding:3px 7px;font-size:8px;color:#9CA3AF">Cevap: ______</div>`;
   if(sett.sol)    h+=`<div style="border-top:1px solid #E5E7EB;height:${solH}px;background:#FAFAFA"></div>`;
   h+=`</div>`;
