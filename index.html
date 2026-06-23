@@ -1,0 +1,822 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="TestForge">
+<title>TestForge — Test Oluşturucu</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --orange:#E8973A;
+  --orange2:#d4852e;
+  --bg:#F0F1F5;
+  --white:#FFFFFF;
+  --card:#FFFFFF;
+  --border:#E4E6EC;
+  --text:#1A1A2E;
+  --text2:#6B7280;
+  --text3:#9CA3AF;
+  --tabbar:60px;
+  --safe:env(safe-area-inset-bottom,0px);
+}
+html,body{height:100%;background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI',sans-serif;color:var(--text);font-size:15px;overflow:hidden}
+
+/* SCREENS */
+.screen{position:fixed;inset:0;bottom:calc(var(--tabbar) + var(--safe));overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;display:none;flex-direction:column;background:var(--bg)}
+.screen.active{display:flex}
+
+/* TOP BAR */
+.topbar{padding:16px 18px 10px;background:var(--bg);position:sticky;top:0;z-index:50;flex-shrink:0}
+.topbar-title{font-size:22px;font-weight:800;letter-spacing:-.4px;color:var(--text)}
+.topbar-sub{font-size:13px;color:var(--text2);margin-top:2px}
+
+/* TAB BAR */
+.tabbar{position:fixed;bottom:0;left:0;right:0;height:calc(var(--tabbar) + var(--safe));background:var(--white);border-top:1px solid var(--border);display:flex;z-index:200;padding-bottom:var(--safe)}
+.tab-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;padding-top:8px;color:var(--text3);font-size:10px;font-weight:500;transition:color .2s}
+.tab-item.active{color:var(--orange)}
+.tab-item svg{width:22px;height:22px;stroke-width:1.8}
+
+/* CARDS */
+.card{background:var(--card);border-radius:18px;margin:0 14px 12px;padding:18px;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+.card-title{font-size:14px;font-weight:700;margin-bottom:12px;color:var(--text)}
+
+/* BUTTONS */
+.btn-primary{width:100%;background:var(--orange);color:#fff;border:none;border-radius:14px;padding:16px;font-size:16px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;font-family:inherit;transition:all .15s;-webkit-appearance:none}
+.btn-primary:active{background:var(--orange2);transform:scale(.98)}
+.btn-secondary{background:var(--bg);color:var(--text);border:none;border-radius:12px;padding:11px 18px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:6px;transition:all .15s}
+.btn-secondary:active{opacity:.7}
+.btn-ghost{background:transparent;color:var(--text2);border:1.5px solid var(--border);border-radius:10px;padding:8px 14px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:5px;transition:all .15s}
+.btn-ghost:active{opacity:.7}
+.btn-danger{background:#FEE2E2;color:#DC2626;border:none;border-radius:10px;padding:8px 14px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:5px}
+
+/* UPLOAD ZONES */
+.upload-zone{border:2px dashed var(--border);border-radius:16px;padding:28px 16px;display:flex;flex-direction:column;align-items:center;gap:8px;background:var(--bg);text-align:center;cursor:pointer;transition:border-color .2s}
+.upload-zone:active{border-color:var(--orange)}
+.upload-zone-icon{font-size:28px}
+.upload-zone-title{font-size:14px;font-weight:700}
+.upload-zone-desc{font-size:12px;color:var(--text3);line-height:1.5}
+
+/* VIEWER */
+.viewer-toolbar{display:flex;align-items:center;gap:6px;padding:10px 14px;border-bottom:1px solid var(--border);flex-wrap:wrap;background:var(--white)}
+.viewer-canvas-wrap{position:relative;overflow:auto;background:#555;min-height:300px;display:flex;justify-content:center;align-items:flex-start;padding:14px;cursor:crosshair;-webkit-overflow-scrolling:touch}
+.crop-overlay{position:absolute;border:2.5px solid #3B82F6;background:rgba(59,130,246,.15);pointer-events:none;z-index:10;display:none;border-radius:3px}
+.crop-confirm{position:absolute;z-index:20;display:none;gap:6px}
+
+/* QUESTION ITEM */
+.q-item{display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--bg);border-radius:12px;margin-bottom:8px}
+.q-thumb{width:60px;height:44px;object-fit:cover;border-radius:8px;border:1px solid var(--border);flex-shrink:0}
+.q-num{font-size:13px;font-weight:700;color:var(--orange)}
+.q-btns{display:flex;gap:5px;margin-left:auto}
+
+/* FORM */
+.form-group{margin-bottom:12px}
+.form-label{font-size:12px;font-weight:700;color:var(--text2);margin-bottom:5px;display:block;letter-spacing:.01em;text-transform:uppercase}
+.form-input{width:100%;padding:12px 14px;border:1.5px solid var(--border);border-radius:12px;font-size:15px;font-family:inherit;color:var(--text);background:var(--white);outline:none;-webkit-appearance:none;transition:border-color .2s}
+.form-input:focus{border-color:var(--orange)}
+select.form-input{cursor:pointer}
+
+/* TOGGLE */
+.toggle-row{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border)}
+.toggle-row:last-child{border-bottom:none}
+.toggle-label{font-size:14px;font-weight:500}
+.toggle{width:44px;height:26px;border-radius:100px;background:var(--border);position:relative;cursor:pointer;transition:background .2s;flex-shrink:0}
+.toggle.on{background:var(--orange)}
+.toggle::after{content:'';position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.2);transition:transform .2s}
+.toggle.on::after{transform:translateX(18px)}
+
+/* CHIPS */
+.chip-group{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
+.chip{padding:7px 16px;border-radius:100px;font-size:13px;font-weight:600;cursor:pointer;border:1.5px solid var(--border);background:var(--white);color:var(--text2);transition:all .15s;font-family:inherit}
+.chip.on{background:var(--orange);color:#fff;border-color:var(--orange)}
+
+/* PILL */
+.pill{display:inline-flex;align-items:center;padding:3px 10px;border-radius:100px;font-size:11px;font-weight:700}
+.pill-ok{background:rgba(232,151,58,.12);color:var(--orange)}
+.pill-wait{background:#FEF3C7;color:#92400E}
+
+/* PREVIEW */
+.preview-paper{background:#fff;border-radius:4px;box-shadow:0 4px 20px rgba(0,0,0,.25);padding:20px 18px;font-family:Arial,sans-serif;font-size:11px;line-height:1.5}
+.prev-header{display:flex;justify-content:space-between;border-bottom:2px solid #1B2B4B;padding-bottom:7px;margin-bottom:10px}
+.prev-school{font-size:9.5px;color:#6B7280;line-height:1.7}
+.prev-title{font-size:12px;font-weight:800;color:#1B2B4B;text-align:right}
+.prev-infobar{display:grid;grid-template-columns:repeat(4,1fr);border:1px solid #D1D5DB;border-radius:4px;overflow:hidden;margin-bottom:10px}
+.prev-cell{padding:4px 7px;border-right:1px solid #D1D5DB}
+.prev-cell:last-child{border-right:none}
+.prev-cell-lbl{font-size:7px;color:#9CA3AF;text-transform:uppercase;letter-spacing:.04em}
+.prev-cell-val{font-weight:700;font-size:9px}
+.prev-qs{display:flex;flex-direction:column;gap:8px}
+.prev-q-row-2{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.prev-q{border:1px solid #E5E7EB;border-radius:4px;overflow:hidden}
+.prev-q-head{background:#F7F9FC;padding:2px 7px;font-size:8px;font-weight:700;color:#6B7280;display:flex;justify-content:space-between}
+.prev-q img{width:100%;display:block;max-height:140px;object-fit:contain}
+.prev-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:180px;color:#ccc;gap:8px}
+
+/* ANS KEY */
+.ans-grid{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.ans-cell{display:flex;flex-direction:column;align-items:center;gap:3px}
+.ans-num{font-size:10px;font-weight:700;color:var(--text2)}
+.ans-inp{width:34px;height:34px;text-align:center;padding:0;font-size:13px;font-weight:700;border:1.5px solid var(--border);border-radius:8px;text-transform:uppercase;font-family:inherit;background:var(--white);-webkit-appearance:none;outline:none}
+.ans-inp:focus{border-color:var(--orange)}
+
+/* EMPTY STATE */
+.empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;text-align:center;gap:10px}
+.empty-icon{font-size:52px;opacity:.25;margin-bottom:4px}
+.empty-title{font-size:16px;font-weight:700;color:var(--text2)}
+.empty-desc{font-size:13px;color:var(--text3);line-height:1.5}
+
+/* HERO CARD */
+.hero-card{background:var(--white);border-radius:20px;margin:0 14px 12px;padding:30px 20px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:14px;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+.hero-icon{width:72px;height:72px;background:var(--bg);border-radius:18px;display:flex;align-items:center;justify-content:center;font-size:36px}
+.hero-title{font-size:20px;font-weight:800;letter-spacing:-.3px}
+.hero-desc{font-size:13px;color:var(--text2);line-height:1.6}
+
+/* SECTION HEADER */
+.section-header{display:flex;align-items:center;justify-content:space-between;padding:0 14px;margin-bottom:8px}
+.section-title{font-size:16px;font-weight:800}
+
+/* STEP INDICATOR */
+.steps{display:flex;padding:0 14px;gap:8px;margin-bottom:12px}
+.step{flex:1;background:var(--white);border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:5px;border:1.5px solid var(--border);transition:all .2s}
+.step.active{border-color:var(--orange);background:rgba(232,151,58,.06)}
+.step.done{border-color:#22c55e;background:rgba(34,197,94,.06)}
+.step-num{font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text3)}
+.step.active .step-num{color:var(--orange)}
+.step.done .step-num{color:#22c55e}
+.step-ico{font-size:18px}
+.step-ttl{font-size:11px;font-weight:700;color:var(--text)}
+
+/* LIB ITEM */
+.lib-item{display:flex;align-items:center;gap:12px;padding:13px 16px;background:var(--white);border-radius:14px;margin:0 14px 8px;box-shadow:0 1px 3px rgba(0,0,0,.05)}
+.lib-item-ico{width:40px;height:40px;background:rgba(232,151,58,.1);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.lib-item-info{flex:1;min-width:0}
+.lib-item-title{font-size:14px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lib-item-meta{font-size:12px;color:var(--text2);margin-top:1px}
+
+/* DIVIDER */
+.divider{height:1px;background:var(--border);margin:12px 0}
+
+@media(max-height:600px){.screen{bottom:calc(50px + var(--safe))}.tabbar{height:calc(50px + var(--safe))}}
+</style>
+</head>
+<body>
+
+<!-- ══ SCREEN: ANA SAYFA ══ -->
+<div class="screen active" id="screen-home">
+  <div class="topbar">
+    <div style="display:flex;align-items:center;gap:10px">
+      <div style="width:38px;height:38px;background:var(--orange);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px">📄</div>
+      <div>
+        <div class="topbar-title" style="font-size:18px">TestForge</div>
+        <div class="topbar-sub">Test Oluşturucu</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="home-empty" style="display:flex;flex-direction:column">
+    <div class="hero-card">
+      <div class="hero-icon">📝</div>
+      <div class="hero-title">Hadi Başlayalım!</div>
+      <div class="hero-desc">PDF veya fotoğraftan sorular seçin, A4 test oluşturun ve yazdırın.</div>
+      <button class="btn-primary" onclick="goCreate()" style="margin-top:4px">
+        <span>★</span> Yeni Test Oluştur
+      </button>
+      <div style="font-size:12px;color:var(--text3)">Fotoğraf yükle, kare çiz, yazdır.</div>
+    </div>
+
+    <div class="section-header" style="margin-top:4px">
+      <div class="section-title">Son Testler</div>
+      <button class="btn-ghost" onclick="switchTab('library')" style="font-size:12px;padding:6px 12px">Tümü →</button>
+    </div>
+    <div id="home-lib-list">
+      <div class="empty-state" style="padding:20px">
+        <div style="font-size:36px;opacity:.2">📭</div>
+        <div style="font-size:13px;color:var(--text3)">Henüz kayıtlı test yok.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ SCREEN: OLUŞTUR ══ -->
+<div class="screen" id="screen-create">
+  <div class="topbar">
+    <div style="display:flex;align-items:center;justify-content:space-between">
+      <div class="topbar-title">Test Oluştur</div>
+      <button class="btn-ghost" onclick="resetAll()" style="font-size:12px;padding:6px 12px">🔄 Yeni</button>
+    </div>
+  </div>
+
+  <!-- Steps -->
+  <div class="steps">
+    <div class="step active" id="step1"><div class="step-num">01</div><div class="step-ico">📂</div><div class="step-ttl">Yükle</div></div>
+    <div class="step" id="step2"><div class="step-num">02</div><div class="step-ico">✂️</div><div class="step-ttl">Seç</div></div>
+    <div class="step" id="step3"><div class="step-num">03</div><div class="step-ico">📐</div><div class="step-ttl">Yazdır</div></div>
+  </div>
+
+  <!-- Sub tabs -->
+  <div style="display:flex;padding:0 14px;gap:8px;margin-bottom:14px">
+    <button class="chip on" id="subtab-src" onclick="switchSubTab('src')">📂 Kaynak</button>
+    <button class="chip" id="subtab-cfg" onclick="switchSubTab('cfg')">⚙️ Ayarlar</button>
+    <button class="chip" id="subtab-prv" onclick="switchSubTab('prv')">👁 Önizle</button>
+  </div>
+
+  <!-- SUB: KAYNAK -->
+  <div id="sub-src">
+    <!-- Upload -->
+    <div class="card" style="padding:14px">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <label for="pdf-input" class="upload-zone">
+          <div class="upload-zone-icon">📎</div>
+          <div class="upload-zone-title">PDF Yükle</div>
+          <div class="upload-zone-desc">Tıklayın</div>
+          <input type="file" id="pdf-input" accept=".pdf,application/pdf" style="display:none" onchange="loadPDF(this)">
+        </label>
+        <label for="img-input" class="upload-zone">
+          <div class="upload-zone-icon">🖼️</div>
+          <div class="upload-zone-title">Görsel Yükle</div>
+          <div class="upload-zone-desc">PNG, JPG</div>
+          <input type="file" id="img-input" accept="image/*" multiple style="display:none" onchange="loadImages(this)">
+        </label>
+      </div>
+      <div id="file-status" style="display:none;margin-top:10px;text-align:center">
+        <span class="pill pill-ok" id="file-label">⬤ Bekleniyor</span>
+      </div>
+    </div>
+
+    <!-- Viewer -->
+    <div class="card" id="viewer-card" style="display:none;padding:0;overflow:hidden">
+      <div class="viewer-toolbar">
+        <button class="btn-ghost" onclick="go(-1)" id="btn-prev" style="padding:7px 10px">◀</button>
+        <span id="pg-ind" style="font-size:12px;font-weight:600;color:var(--text2);min-width:50px;text-align:center">1/1</span>
+        <button class="btn-ghost" onclick="go(1)" id="btn-next" style="padding:7px 10px">▶</button>
+        <button class="btn-ghost" onclick="changeZoom(-.2)" style="padding:7px 10px">−</button>
+        <span id="zoom-val" style="font-size:12px;font-weight:600;color:var(--text2);width:38px;text-align:center">100%</span>
+        <button class="btn-ghost" onclick="changeZoom(.2)" style="padding:7px 10px">+</button>
+        <button class="btn-ghost" onclick="undoLast()" style="padding:7px 10px;margin-left:auto">↩️</button>
+      </div>
+      <div style="display:flex;gap:6px;padding:8px 14px;background:var(--bg)">
+        <button class="chip on" id="btn-mode-crop" onclick="setMode('crop')" style="flex:1;justify-content:center">✂️ Soru Seç</button>
+        <button class="chip" id="btn-mode-pan" onclick="setMode('pan')" style="flex:1;justify-content:center">🖐 Kaydır</button>
+        <button class="btn-ghost" onclick="shuffleQs()" style="padding:7px 10px">🔀</button>
+      </div>
+      <div class="viewer-canvas-wrap" id="canvas-wrap">
+        <canvas id="main-canvas" style="display:block;box-shadow:0 2px 16px rgba(0,0,0,.3);user-select:none;-webkit-user-select:none"></canvas>
+        <div class="crop-overlay" id="crop-rect"></div>
+        <div class="crop-confirm" id="crop-confirm">
+          <button class="btn-primary" onclick="confirmCrop()" style="padding:10px 18px;font-size:13px;border-radius:10px;width:auto">✓ Ekle</button>
+          <button class="btn-secondary" onclick="cancelCrop()" style="padding:10px 14px;border-radius:10px">✕</button>
+        </div>
+      </div>
+      <div style="padding:8px 14px;background:var(--bg);font-size:12px;color:var(--text2);text-align:center" id="mode-hint">
+        ✂️ Kare çizerek soru seçin
+      </div>
+    </div>
+
+    <!-- Question list -->
+    <div class="card" style="padding:14px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <div style="font-size:15px;font-weight:800">Seçilen Sorular</div>
+        <span class="pill" id="q-count-pill" style="background:rgba(232,151,58,.12);color:var(--orange)">0 soru</span>
+      </div>
+      <div id="q-list">
+        <div style="text-align:center;padding:16px 0;color:var(--text3);font-size:13px">
+          Henüz soru seçilmedi.<br>Kaynak yükleyip ✂️ ile kare çizin.
+        </div>
+      </div>
+    </div>
+
+    <!-- CTA -->
+    <div style="padding:0 14px 14px">
+      <button class="btn-primary" onclick="switchSubTab('cfg')">⚙️ Ayarlara Geç →</button>
+    </div>
+  </div>
+
+  <!-- SUB: AYARLAR -->
+  <div id="sub-cfg" style="display:none">
+    <div class="card">
+      <div class="card-title">🏫 Okul Bilgileri</div>
+      <div class="form-group"><label class="form-label">Okul Adı</label><input class="form-input" id="cfg-school" placeholder="Atatürk Anadolu Lisesi"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div class="form-group"><label class="form-label">Sınıf</label><input class="form-input" id="cfg-class" placeholder="10-A"></div>
+        <div class="form-group"><label class="form-label">Tarih</label><input type="date" class="form-input" id="cfg-date"></div>
+      </div>
+      <div class="form-group"><label class="form-label">Öğretmen</label><input class="form-input" id="cfg-teacher" placeholder="Ad Soyad"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">📝 Test Bilgileri</div>
+      <div class="form-group"><label class="form-label">Test Başlığı</label><input class="form-input" id="cfg-title" placeholder="2. Dönem 1. Yazılı"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div class="form-group"><label class="form-label">Ders</label><input class="form-input" id="cfg-lesson" placeholder="Matematik"></div>
+        <div class="form-group"><label class="form-label">Konu</label><input class="form-input" id="cfg-topic" placeholder="Türev"></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div class="form-group"><label class="form-label">Şablon</label>
+          <select class="form-input" id="cfg-template">
+            <option value="">— Yok —</option>
+            <option>TEST 1</option><option>TEST 2</option><option>TEST 3</option>
+            <option>YAZILI SINAV</option><option>QUIZ</option><option>ÖDEV</option>
+            <option>A KİTAPÇIĞI</option><option>B KİTAPÇIĞI</option>
+          </select>
+        </div>
+        <div class="form-group"><label class="form-label">Soru Puanı</label><input type="number" class="form-input" id="cfg-pts" value="5" min="1" max="100"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">📐 Düzen</div>
+      <div class="form-group">
+        <label class="form-label">Sütun Sayısı</label>
+        <div class="chip-group">
+          <button class="chip" onclick="chipSel(this,'cols')" data-val="1">1 Sütun</button>
+          <button class="chip on" onclick="chipSel(this,'cols')" data-val="2">2 Sütun</button>
+        </div>
+      </div>
+      <div class="divider"></div>
+      <div class="toggle-row" onclick="togSel(this)"><span class="toggle-label">Ad/Sınıf/Puan tablosu</span><div class="toggle on" data-key="table"></div></div>
+      <div class="toggle-row" onclick="togSel(this)"><span class="toggle-label">Her soruda puan göster</span><div class="toggle on" data-key="showPts"></div></div>
+      <div class="toggle-row" onclick="togSel(this)"><span class="toggle-label">Cevap kutusu</span><div class="toggle" data-key="ansBox"></div></div>
+      <div class="toggle-row" onclick="togSel(this)"><span class="toggle-label">Çözüm alanı</span><div class="toggle" data-key="sol"></div></div>
+      <div class="toggle-row" onclick="togSel(this)"><span class="toggle-label">Ayrı cevap anahtarı</span><div class="toggle" data-key="ansPage"></div></div>
+      <div style="margin-top:14px">
+        <label class="form-label">Çözüm Alanı Yüksekliği</label>
+        <div class="chip-group">
+          <button class="chip" onclick="chipSel(this,'solH')" data-val="40">Küçük</button>
+          <button class="chip on" onclick="chipSel(this,'solH')" data-val="80">Orta</button>
+          <button class="chip" onclick="chipSel(this,'solH')" data-val="120">Büyük</button>
+          <button class="chip" onclick="chipSel(this,'solH')" data-val="160">Çok Büyük</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">🔑 Cevap Anahtarı <span style="font-size:12px;font-weight:400;color:var(--text3)">(isteğe bağlı)</span></div>
+      <div class="ans-grid" id="ans-key-grid">
+        <div style="font-size:13px;color:var(--text3)">Önce soru seçin.</div>
+      </div>
+    </div>
+
+    <div style="padding:0 14px 14px">
+      <button class="btn-primary" onclick="switchSubTab('prv');buildPreview()">👁 Önizlemeye Geç →</button>
+    </div>
+  </div>
+
+  <!-- SUB: ÖNİZLEME -->
+  <div id="sub-prv" style="display:none">
+    <div class="card" style="padding:14px">
+      <div style="display:flex;gap:8px;margin-bottom:12px">
+        <button class="btn-primary" onclick="doPrint()" style="flex:1;padding:13px">🖨️ Yazdır / PDF</button>
+        <button class="btn-secondary" onclick="saveToLib()" style="border:1.5px solid var(--border)">💾 Kaydet</button>
+      </div>
+      <div style="background:#555;border-radius:12px;padding:12px;overflow-x:auto">
+        <div id="preview-paper" class="preview-paper" style="min-width:280px;max-width:595px;margin:0 auto">
+          <div class="prev-empty">
+            <div style="font-size:36px;opacity:.3">🗂</div>
+            <div style="font-size:12px">Soru seçilmedi.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ SCREEN: KÜTÜPHANe ══ -->
+<div class="screen" id="screen-library">
+  <div class="topbar">
+    <div style="display:flex;align-items:center;justify-content:space-between">
+      <div class="topbar-title">Kütüphane</div>
+      <button class="btn-danger" onclick="clearLib()" style="font-size:12px;padding:6px 12px">🗑️ Temizle</button>
+    </div>
+  </div>
+  <div id="lib-list"></div>
+</div>
+
+<!-- ══ TAB BAR ══ -->
+<nav class="tabbar">
+  <div class="tab-item active" id="tab-home" onclick="switchTab('home')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+    Ana Sayfa
+  </div>
+  <div class="tab-item" id="tab-create" onclick="switchTab('create')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+    Oluştur
+  </div>
+  <div class="tab-item" id="tab-library" onclick="switchTab('library')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>
+    Kütüphane
+  </div>
+</nav>
+
+<script>
+// ── STATE ──
+let pdfDoc=null, srcPages=[], pageIdx=0, zoom=1, rotation=0;
+let mode='crop', isDrawing=false;
+let startP={x:0,y:0}, endP={x:0,y:0}, pendingCrop=null;
+let questions=[], cols=2, solH=80;
+let sett={table:true,showPts:true,ansBox:false,sol:false,ansPage:false};
+
+// ── NAVIGATION ──
+function switchTab(t){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.tab-item').forEach(i=>i.classList.remove('active'));
+  document.getElementById('screen-'+t).classList.add('active');
+  document.getElementById('tab-'+t).classList.add('active');
+  if(t==='library')renderLib();
+  if(t==='home')renderHomeLib();
+}
+function goCreate(){switchTab('create');}
+function switchSubTab(t){
+  ['src','cfg','prv'].forEach(s=>{
+    document.getElementById('sub-'+s).style.display=s===t?'':'none';
+    document.getElementById('subtab-'+s).classList.toggle('on',s===t);
+  });
+  if(t==='prv')buildPreview();
+  if(t==='cfg')renderAnsKey();
+}
+
+// ── PDF ──
+function loadPDF(inp){
+  const file=inp.files[0]; if(!file)return;
+  showFileStatus('⏳ '+file.name+' yükleniyor...');
+  const reader=new FileReader();
+  reader.onload=async ev=>{
+    try{
+      if(!window.pdfjsLib){
+        await new Promise((res,rej)=>{
+          const s=document.createElement('script');
+          s.src='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+          s.onload=res; s.onerror=rej; document.head.appendChild(s);
+        });
+        window.pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+      }
+      const pdf=await window.pdfjsLib.getDocument({data:ev.target.result}).promise;
+      const pages=[];
+      for(let i=1;i<=pdf.numPages;i++){
+        const pg=await pdf.getPage(i);
+        const vp=pg.getViewport({scale:1.5});
+        const tmp=document.createElement('canvas');
+        tmp.width=vp.width; tmp.height=vp.height;
+        await pg.render({canvasContext:tmp.getContext('2d'),viewport:vp}).promise;
+        pages.push({dataUrl:tmp.toDataURL('image/jpeg',.85)});
+      }
+      srcPages=pages; pageIdx=0; zoom=1;
+      showFileStatus('✓ '+file.name);
+      showViewer(); renderCanvas();
+      setStep(2);
+    }catch(e){alert('PDF yüklenemedi: '+e.message); showFileStatus('');}
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function loadImages(inp){
+  const files=Array.from(inp.files); if(!files.length)return;
+  Promise.all(files.map(f=>new Promise(res=>{
+    const r=new FileReader(); r.onload=ev=>res({dataUrl:ev.target.result}); r.readAsDataURL(f);
+  }))).then(pages=>{
+    srcPages=pages; pageIdx=0; zoom=1;
+    showFileStatus('✓ '+files.length+' görsel');
+    showViewer(); renderCanvas();
+    setStep(2);
+  });
+}
+
+function showFileStatus(txt){
+  const s=document.getElementById('file-status');
+  const l=document.getElementById('file-label');
+  if(txt){s.style.display=''; l.textContent=txt;}
+  else s.style.display='none';
+}
+function showViewer(){document.getElementById('viewer-card').style.display='';}
+
+// ── CANVAS ──
+function renderCanvas(){
+  const url=srcPages[pageIdx]?.dataUrl; if(!url)return;
+  const img=new Image();
+  img.onload=()=>{
+    const c=document.getElementById('main-canvas');
+    c.width=img.width*zoom; c.height=img.height*zoom;
+    c.getContext('2d').drawImage(img,0,0,c.width,c.height);
+    document.getElementById('pg-ind').textContent=(pageIdx+1)+'/'+srcPages.length;
+    document.getElementById('btn-prev').disabled=pageIdx===0;
+    document.getElementById('btn-next').disabled=pageIdx>=srcPages.length-1;
+    document.getElementById('zoom-val').textContent=Math.round(zoom*100)+'%';
+  };
+  img.src=url;
+}
+
+function go(d){
+  const ni=Math.max(0,Math.min(srcPages.length-1,pageIdx+d));
+  pageIdx=ni; cancelCrop(); renderCanvas();
+}
+function changeZoom(d){zoom=Math.max(.3,Math.min(3,zoom+d)); renderCanvas();}
+function undoLast(){if(questions.length){questions.pop();renderQList();}}
+function shuffleQs(){
+  for(let i=questions.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[questions[i],questions[j]]=[questions[j],questions[i]];}
+  renderQList();
+}
+
+// ── MODE ──
+function setMode(m){
+  mode=m;
+  document.getElementById('btn-mode-crop').classList.toggle('on',m==='crop');
+  document.getElementById('btn-mode-pan').classList.toggle('on',m==='pan');
+  document.getElementById('canvas-wrap').style.cursor=m==='crop'?'crosshair':'grab';
+  document.getElementById('mode-hint').textContent=m==='crop'?'✂️ Kare çizerek soru seçin':'🖐 Sayfayı kaydırın';
+  cancelCrop();
+}
+
+// ── CROP ──
+const wrap=document.getElementById('canvas-wrap');
+const cropRect=document.getElementById('crop-rect');
+const cropCfm=document.getElementById('crop-confirm');
+
+function getPos(cx,cy){
+  const r=wrap.getBoundingClientRect();
+  return{x:cx-r.left+wrap.scrollLeft,y:cy-r.top+wrap.scrollTop};
+}
+function updateRect(){
+  const x=Math.min(startP.x,endP.x),y=Math.min(startP.y,endP.y);
+  const w=Math.abs(endP.x-startP.x),h=Math.abs(endP.y-startP.y);
+  Object.assign(cropRect.style,{display:'block',left:x+'px',top:y+'px',width:w+'px',height:h+'px'});
+}
+function cancelCrop(){
+  isDrawing=false; pendingCrop=null;
+  cropRect.style.display='none'; cropCfm.style.display='none';
+}
+function onDown(cx,cy,target){
+  if(mode!=='crop')return;
+  const c=document.getElementById('main-canvas');
+  if(target!==c&&target!==wrap)return;
+  cancelCrop(); isDrawing=true;
+  startP=getPos(cx,cy); endP={...startP}; updateRect();
+}
+function onMove(cx,cy){
+  if(!isDrawing)return;
+  endP=getPos(cx,cy); updateRect();
+}
+function onUp(){
+  if(!isDrawing)return; isDrawing=false;
+  const w=Math.abs(endP.x-startP.x),h=Math.abs(endP.y-startP.y);
+  if(w<15||h<15){cancelCrop();return;}
+  const x=Math.min(startP.x,endP.x),y=Math.min(startP.y,endP.y);
+  pendingCrop={x,y,w,h};
+  Object.assign(cropCfm.style,{display:'flex',left:(x+w+6)+'px',top:y+'px'});
+}
+
+wrap.addEventListener('mousedown',e=>{if(e.target===document.getElementById('main-canvas')||e.target===wrap)onDown(e.clientX,e.clientY,e.target);});
+wrap.addEventListener('mousemove',e=>onMove(e.clientX,e.clientY));
+wrap.addEventListener('mouseup',()=>onUp());
+wrap.addEventListener('touchstart',e=>{onDown(e.touches[0].clientX,e.touches[0].clientY,e.target);e.preventDefault();},{passive:false});
+wrap.addEventListener('touchmove',e=>{onMove(e.touches[0].clientX,e.touches[0].clientY);e.preventDefault();},{passive:false});
+wrap.addEventListener('touchend',()=>onUp(),{passive:false});
+
+function confirmCrop(){
+  if(!pendingCrop)return;
+  const canvas=document.getElementById('main-canvas');
+  const wR=wrap.getBoundingClientRect(),cR=canvas.getBoundingClientRect();
+  const offX=cR.left-wR.left+wrap.scrollLeft,offY=cR.top-wR.top+wrap.scrollTop;
+  const{x,y,w,h}=pendingCrop;
+  const sx=Math.max(0,x-offX),sy=Math.max(0,y-offY);
+  const sw=Math.min(w,canvas.width-sx),sh=Math.min(h,canvas.height-sy);
+  if(sw<5||sh<5){cancelCrop();return;}
+  const tmp=document.createElement('canvas');
+  tmp.width=sw; tmp.height=sh;
+  tmp.getContext('2d').drawImage(canvas,sx,sy,sw,sh,0,0,sw,sh);
+  questions.push({id:Date.now(),dataUrl:tmp.toDataURL('image/png'),answer:''});
+  renderQList(); cancelCrop(); setStep(3);
+}
+
+// ── QUESTION LIST ──
+function renderQList(){
+  const list=document.getElementById('q-list');
+  const pill=document.getElementById('q-count-pill');
+  pill.textContent=questions.length+' soru';
+  if(!questions.length){
+    list.innerHTML='<div style="text-align:center;padding:16px 0;color:var(--text3);font-size:13px">Henüz soru seçilmedi.<br>Kaynak yükleyip ✂️ ile kare çizin.</div>';
+    return;
+  }
+  list.innerHTML=questions.map((q,i)=>`
+    <div class="q-item">
+      <img class="q-thumb" src="${q.dataUrl}" alt="">
+      <span class="q-num">Soru ${i+1}</span>
+      <div class="q-btns">
+        <button class="btn-ghost" onclick="moveQ(${q.id},-1)" style="padding:6px 9px">↑</button>
+        <button class="btn-ghost" onclick="moveQ(${q.id},1)" style="padding:6px 9px">↓</button>
+        <button class="btn-danger" onclick="removeQ(${q.id})" style="padding:6px 9px;border-radius:10px">✕</button>
+      </div>
+    </div>`).join('');
+  renderAnsKey();
+}
+function removeQ(id){questions=questions.filter(q=>q.id!==id);renderQList();}
+function moveQ(id,d){
+  const i=questions.findIndex(q=>q.id===id);
+  if(i+d<0||i+d>=questions.length)return;
+  [questions[i],questions[i+d]]=[questions[i+d],questions[i]];
+  renderQList();
+}
+
+// ── ANS KEY ──
+function renderAnsKey(){
+  const g=document.getElementById('ans-key-grid');
+  if(!questions.length){g.innerHTML='<div style="font-size:13px;color:var(--text3)">Önce soru seçin.</div>';return;}
+  g.innerHTML=questions.map((q,i)=>`
+    <div class="ans-cell">
+      <div class="ans-num">${i+1}</div>
+      <input class="ans-inp" maxlength="2" value="${q.answer||''}" data-id="${q.id}" oninput="updateAns(this)">
+    </div>`).join('');
+}
+function updateAns(inp){
+  const id=parseInt(inp.dataset.id);
+  const q=questions.find(x=>x.id===id);
+  if(q)q.answer=inp.value.toUpperCase();
+}
+
+// ── CHIPS & TOGGLES ──
+function chipSel(el,group){
+  el.closest('.chip-group').querySelectorAll('.chip').forEach(c=>c.classList.remove('on'));
+  el.classList.add('on');
+  if(group==='cols')cols=parseInt(el.dataset.val);
+  if(group==='solH')solH=parseInt(el.dataset.val);
+}
+function togSel(row){
+  const t=row.querySelector('.toggle');
+  t.classList.toggle('on');
+  sett[t.dataset.key]=t.classList.contains('on');
+}
+
+// ── STEPS ──
+function setStep(n){
+  [1,2,3].forEach(i=>{
+    const el=document.getElementById('step'+i);
+    el.classList.remove('active','done');
+    if(i<n)el.classList.add('done');
+    else if(i===n)el.classList.add('active');
+  });
+}
+
+// ── BUILD PREVIEW ──
+function getCfg(){
+  return{
+    school:document.getElementById('cfg-school').value,
+    cls:document.getElementById('cfg-class').value,
+    teacher:document.getElementById('cfg-teacher').value,
+    date:document.getElementById('cfg-date').value,
+    title:document.getElementById('cfg-title').value,
+    lesson:document.getElementById('cfg-lesson').value,
+    topic:document.getElementById('cfg-topic').value,
+    template:document.getElementById('cfg-template').value,
+    pts:parseInt(document.getElementById('cfg-pts').value)||5,
+  };
+}
+
+function buildPreview(){
+  const paper=document.getElementById('preview-paper');
+  if(!questions.length){
+    paper.innerHTML='<div class="prev-empty"><div style="font-size:36px;opacity:.3">🗂</div><div style="font-size:12px">Soru seçilmedi.</div></div>';
+    return;
+  }
+  const c=getCfg();
+  const dateStr=c.date?new Date(c.date).toLocaleDateString('tr-TR'):'—';
+  const label=c.template||c.title||'TEST';
+  let html='';
+  html+=`<div class="prev-header">
+    <div class="prev-school"><strong>${c.school||'Okul Adı'}</strong><br>Öğretmen: ${c.teacher||'—'} | Ders: ${c.lesson||'—'}<br>Konu: ${c.topic||'—'} | Tarih: ${dateStr}</div>
+    <div class="prev-title">${label}<br><span style="font-size:9px;font-weight:500;color:#555">${questions.length} Soru · ${questions.length*c.pts} Puan</span></div>
+  </div>`;
+  if(sett.table){
+    html+=`<div class="prev-infobar">
+      ${['Ad Soyad','Sınıf / No','Doğru','Puan'].map((l,i)=>`<div class="prev-cell"><div class="prev-cell-lbl">${l}</div><div class="prev-cell-val">${i===1?(c.cls||'____'):'___'}</div></div>`).join('')}
+    </div>`;
+  }
+  html+='<div class="prev-qs">';
+  if(cols===2){
+    for(let i=0;i<questions.length;i+=2){
+      html+=`<div class="prev-q-row-2">`;
+      for(let j=i;j<Math.min(i+2,questions.length);j++) html+=qBlock(questions[j],j,c);
+      html+=`</div>`;
+    }
+  }else{
+    questions.forEach((q,i)=>html+=qBlock(q,i,c));
+  }
+  html+='</div>';
+  if(sett.ansPage&&questions.some(q=>q.answer)){
+    html+=`<div style="margin-top:14px;border-top:2px dashed #E5E7EB;padding-top:8px">
+      <div style="font-size:9px;font-weight:700;text-transform:uppercase;margin-bottom:5px">Cevap Anahtarı</div>
+      <div style="display:flex;flex-wrap:wrap;gap:4px">
+        ${questions.filter(q=>q.answer).map(q=>`<span style="font-size:8px;background:#F7F9FC;border:1px solid #E5E7EB;border-radius:3px;padding:1px 5px;font-weight:700">${questions.indexOf(q)+1}: ${q.answer}</span>`).join('')}
+      </div>
+    </div>`;
+  }
+  paper.innerHTML=html;
+}
+
+function qBlock(q,idx,c){
+  let h=`<div class="prev-q">
+    <div class="prev-q-head"><span>Soru ${idx+1}</span>${sett.showPts?`<span>${c.pts} p</span>`:''}</div>
+    <img src="${q.dataUrl}" style="width:100%;display:block;max-height:120px;object-fit:contain">`;
+  if(sett.ansBox) h+=`<div style="border-top:1px solid #E5E7EB;padding:3px 7px;font-size:8px;color:#9CA3AF">Cevap: ______</div>`;
+  if(sett.sol)    h+=`<div style="border-top:1px solid #E5E7EB;height:${solH}px;background:#FAFAFA"></div>`;
+  h+=`</div>`;
+  return h;
+}
+
+// ── PRINT ──
+function doPrint(){
+  if(!questions.length){alert('Önce soru seçin!');return;}
+  buildPreview();
+  const el=document.getElementById('preview-paper');
+  const w=window.open('','_blank');
+  w.document.write(`<html><head><title>TestForge</title><style>body{margin:16px;font-family:Arial,sans-serif}img{max-width:100%}@media print{body{margin:0}}</style></head><body>${el.innerHTML}</body></html>`);
+  w.document.close(); w.focus(); setTimeout(()=>w.print(),400);
+}
+
+// ── RESET ──
+function resetAll(){
+  if(!confirm('Tüm sorular silinecek. Devam?'))return;
+  questions=[]; srcPages=[]; pageIdx=0; zoom=1;
+  document.getElementById('viewer-card').style.display='none';
+  document.getElementById('file-status').style.display='none';
+  document.getElementById('pdf-input').value='';
+  document.getElementById('img-input').value='';
+  renderQList(); setStep(1);
+}
+
+// ── LIBRARY ──
+function getLib(){try{return JSON.parse(localStorage.getItem('tf_lib')||'[]');}catch{return[];}}
+function setLibData(d){localStorage.setItem('tf_lib',JSON.stringify(d));}
+
+function saveToLib(){
+  if(!questions.length){alert('Kaydetmek için soru seçin.');return;}
+  const c=getCfg();
+  const title=c.title||c.lesson||('Test '+new Date().toLocaleDateString('tr-TR'));
+  const lib=getLib();
+  lib.push({id:Date.now(),title,date:new Date().toLocaleDateString('tr-TR'),count:questions.length,questions:[...questions],sett:{...sett},cols,solH,cfg:c});
+  setLibData(lib);
+  alert('✅ "'+title+'" kaydedildi!');
+}
+
+function renderLib(){
+  const lib=getLib();
+  const list=document.getElementById('lib-list');
+  if(!lib.length){
+    list.innerHTML=`<div class="empty-state"><div class="empty-icon">📭</div><div class="empty-title">Henüz kayıtlı test yok</div><div class="empty-desc">Test oluşturup kaydedin.</div></div>`;
+    return;
+  }
+  list.innerHTML=lib.map(e=>`
+    <div class="lib-item">
+      <div class="lib-item-ico">📄</div>
+      <div class="lib-item-info">
+        <div class="lib-item-title">${e.title}</div>
+        <div class="lib-item-meta">${e.count} soru · ${e.date}</div>
+      </div>
+      <button class="btn-ghost" onclick="loadLib(${e.id})" style="font-size:12px;padding:7px 12px">Yükle</button>
+      <button class="btn-danger" onclick="delLib(${e.id})" style="padding:7px 10px;border-radius:10px">✕</button>
+    </div>`).join('');
+}
+
+function renderHomeLib(){
+  const lib=getLib().slice(-3).reverse();
+  const el=document.getElementById('home-lib-list');
+  if(!lib.length){
+    el.innerHTML='<div class="empty-state" style="padding:20px"><div style="font-size:36px;opacity:.2">📭</div><div style="font-size:13px;color:var(--text3)">Henüz kayıtlı test yok.</div></div>';
+    return;
+  }
+  el.innerHTML=lib.map(e=>`
+    <div class="lib-item">
+      <div class="lib-item-ico">📄</div>
+      <div class="lib-item-info">
+        <div class="lib-item-title">${e.title}</div>
+        <div class="lib-item-meta">${e.count} soru · ${e.date}</div>
+      </div>
+      <button class="btn-ghost" onclick="loadLib(${e.id})" style="font-size:12px;padding:7px 12px">Yükle</button>
+    </div>`).join('');
+}
+
+function loadLib(id){
+  const e=getLib().find(x=>x.id===id); if(!e)return;
+  questions=[...e.questions]; cols=e.cols||2; solH=e.solH||80;
+  Object.assign(sett,e.sett||{});
+  const c=e.cfg||{};
+  const fields={school:'cfg-school',cls:'cfg-class',teacher:'cfg-teacher',date:'cfg-date',title:'cfg-title',lesson:'cfg-lesson',topic:'cfg-topic',template:'cfg-template',pts:'cfg-pts'};
+  Object.entries(fields).forEach(([k,id])=>{const el=document.getElementById(id);if(el&&c[k]!==undefined)el.value=c[k];});
+  renderQList(); switchTab('create'); switchSubTab('prv'); buildPreview();
+}
+
+function delLib(id){
+  if(!confirm('Silinecek?'))return;
+  setLibData(getLib().filter(x=>x.id!==id)); renderLib();
+}
+function clearLib(){
+  if(!confirm('Tüm kütüphane silinecek!'))return;
+  setLibData([]); renderLib();
+}
+
+// ── INIT ──
+document.getElementById('cfg-date').value=new Date().toISOString().split('T')[0];
+renderQList();
+renderHomeLib();
+</script>
+</body>
+</html>
